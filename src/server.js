@@ -1,18 +1,18 @@
-const http = require("http");
-const app = require("./app");
-const { Server } = require("socket.io");
-const gameSocket = require("./sockets/gameSocket");
+const { createServer } = require('http');
+const { Server } = require('socket.io');
+const app = require('./app.js');
+const { socketHandler } = require('./sockets/gameSocket.js');
 
-const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: "*"
-  }
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: { origin: '*' }
 });
 
-gameSocket(io);
+app.use('/api', require('./routes/api.js'))
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Servidor escuchando en http://localhost:${PORT}`);
+socketHandler(io);
+
+const PORT = process.env.PORT || 4000;
+httpServer.listen(PORT, () => {
+  console.log(`Servidor corriendo en puerto ${PORT}`);
 });

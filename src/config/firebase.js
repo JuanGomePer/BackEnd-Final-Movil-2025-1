@@ -1,16 +1,15 @@
-const admin = require("firebase-admin");
-const { getDatabase } = require("firebase-admin/database");
-const { getStorage } = require("firebase-admin/storage");
+var admin = require("firebase-admin");
+var serviceAccount = require("../../serviceKey.json");
 
-const serviceAccount = require("../../serviceAccountKey.json");
+try {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: "https://final-movil-2025-1-default-rtdb.firebaseio.com/"
+  });
+} catch (error) {
+  console.error('Firebase initialization error:', error);
+}
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  databaseURL: process.env.FIREBASE_DB_URL,
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET
-});
+const db = admin.database();
 
-const db = getDatabase();
-const bucket = getStorage().bucket();
-
-module.exports = { admin, db, bucket };
+module.exports = { db, admin };

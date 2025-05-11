@@ -1,25 +1,37 @@
-module.exports = function (io) {
-  io.on("connection", (socket) => {
-    console.log("Nuevo cliente conectado");
+const { createRoom, getRoom } = require('../services/roomService.js');
+const { getChallenge } = require('../services/aiService.js');
+const { calculateWinner } = require('../services/voteService');
 
-    socket.on("join-room", ({ roomId, playerName }) => {
+
+ const socketHandler = (io) => {
+  io.on('connection', (socket) => {
+    console.log(`Usuario conectado: ${socket.id}`);
+
+    socket.on('create-room', async (callback) => {
+      const roomId = await createRoom();
       socket.join(roomId);
-      io.to(roomId).emit("player-joined", playerName);
+      callback(roomId);
     });
 
-    socket.on("start-challenge", async ({ roomId, category }) => {
-      const { getChallenge } = require("../services/aiService");
+    socket.on('join-room', (roomId, userId) => {
+      socket.join(roomId);
+      io.to(roomId).emit('user-joined', userId);
+    });
+
+    socket.on('start-round', async ({ roomId, category }) => {
       const challenge = await getChallenge(category);
-      io.to(roomId).emit("new-challenge", challenge);
+      io.to(roomId).emit('new-challenge', challenge);
     });
 
-    socket.on("submit-vote", ({ roomId, voteData }) => {
-      // Aquí se puede guardar en Firebase y emitir el resultado
-      io.to(roomId).emit("vote-received", voteData);
+    socket.on('photo-uploaded', ({ roomId, userId }) => {
+      io.to(roomId).emit('photo-ready', userId);
     });
 
-    socket.on("disconnect", () => {
-      console.log("Cliente desconectado");
+    socket.on('voting-complete', async (roomId) => {
+      const result = await calculateWinner(roomId);
+      io.to(roomId).emit('round-winner', result);
     });
   });
 };
+
+module.exports = { socketHandler };

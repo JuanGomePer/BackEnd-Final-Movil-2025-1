@@ -1,15 +1,19 @@
 const axios = require('axios');
+const dotenv = require('dotenv');
 
-const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
+dotenv.config();
 
-async function generateChallenge(prompt) {
-  const res = await axios.post(
-    `${GEMINI_API_URL}?key=${process.env.GEMINI_API_KEY}`,
+const generateChallenge = async (category = "absurdo") => {
+  const prompt = `Genera un reto fotográfico divertido y original para una fiesta en la categoría "${category}"`;
+
+  const response = await axios.post(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`,
     {
       contents: [{ parts: [{ text: prompt }] }]
     }
   );
-  return res.data.candidates[0].content.parts[0].text;
-}
+
+  return response.data.candidates[0].content.parts[0].text;
+};
 
 module.exports = { generateChallenge };
