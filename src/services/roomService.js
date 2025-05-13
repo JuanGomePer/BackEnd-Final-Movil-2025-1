@@ -21,4 +21,9 @@ const getRoom = async (roomId) => {
   return snapshot.exists() ? snapshot.val() : null;
 };
 
-module.exports = { createRoom, getRoom };
+const getAllRooms = async () => {
+  const snapshot = await db.ref('rooms').get();
+  return snapshot.exists() ? snapshot.val() : null;
+};
+
+module.exports = { createRoom, getRoom, getAllRooms };
