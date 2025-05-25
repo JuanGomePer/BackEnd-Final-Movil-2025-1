@@ -1,37 +1,48 @@
-const { createRoom, getRoom } = require('../services/roomService.js');
+// src/sockets/gameSocket.js
 const { getChallenge } = require('../services/aiService.js');
-const { calculateWinner } = require('../services/voteService');
+const { db } = require('../config/firebase.js');
 
-
- const socketHandler = (io) => {
+function socketHandler(io) {
   io.on('connection', (socket) => {
     console.log(`Usuario conectado: ${socket.id}`);
 
-    socket.on('create-room', async (callback) => {
-      const roomId = await createRoom();
+    socket.on('join-room', async (roomId, userId) => {
       socket.join(roomId);
-      callback(roomId);
-    });
-
-    socket.on('join-room', (roomId, userId) => {
-      socket.join(roomId);
-      io.to(roomId).emit('user-joined', userId);
+      const snap = await db.ref(`rooms/${roomId}/players`).get();
+      const players = snap.exists() ? Object.values(snap.val()) : [];
+      io.to(roomId).emit('player-list-updated', players);
     });
 
     socket.on('start-round', async ({ roomId, category }) => {
+      // Genera reto localmente con Ollama
       const challenge = await getChallenge(category);
       io.to(roomId).emit('new-challenge', challenge);
     });
 
-    socket.on('photo-uploaded', ({ roomId, userId }) => {
-      io.to(roomId).emit('photo-ready', userId);
+    socket.on('photo-uploaded', async ({ roomId }) => {
+      const snap = await db.ref(`rooms/${roomId}/photos`).get();
+      const photos = snap.exists() ? Object.values(snap.val()) : [];
+      io.to(roomId).emit('photo-list-updated', photos);
     });
 
     socket.on('voting-complete', async (roomId) => {
-      const result = await calculateWinner(roomId);
-      io.to(roomId).emit('round-winner', result);
+      const votesSnap = await db.ref(`rooms/${roomId}/votes`).get();
+      const votes = votesSnap.exists() ? votesSnap.val() : {};
+      const tally = {};
+      Object.values(votes).forEach(v => {
+        tally[v.votedFor] = (tally[v.votedFor] || 0) + 1;
+      });
+      const playersSnap = await db.ref(`rooms/${roomId}/players`).get();
+      const players = playersSnap.exists() ? playersSnap.val() : {};
+      const scores = Object.entries(tally).map(([uid, pts]) => ({
+        userId: uid,
+        votes: pts,
+        username: players[uid]?.username || "",
+        userPhoto: players[uid]?.userPhoto || ""
+      }));
+      io.to(roomId).emit('scores-updated', scores);
     });
   });
-};
+}
 
 module.exports = { socketHandler };

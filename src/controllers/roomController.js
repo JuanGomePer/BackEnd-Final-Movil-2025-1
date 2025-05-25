@@ -1,3 +1,4 @@
+// src/controllers/roomController.js
 const {
   createRoom,
   getRoomById,
@@ -22,13 +23,9 @@ const createRoomCtrl = async (req, res) => {
 const getRoomByIdCtrl = async (req, res) => {
   try {
     const param = req.params.roomId;
-    let room;
-    // si el parámetro tiene 6 caracteres, lo tratamos como código
-    if (param.length === 6) {
-      room = await getRoomByCode(param);
-    } else {
-      room = await getRoomById(param);
-    }
+    const room = param.length === 6
+      ? await getRoomByCode(param)
+      : await getRoomById(param);
     if (!room) return res.status(404).json({ error: 'Sala no encontrada' });
     res.json(room);
   } catch (error) {

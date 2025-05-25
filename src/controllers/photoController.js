@@ -1,29 +1,35 @@
-const photoService = require("../services/photoService");
+// src/controllers/photoController.js
+const { db } = require('../config/firebase.js');
+const { savePhoto } = require('../services/photoService');
 
 const uploadPhoto = async (req, res) => {
-  try {
-    const { roomId } = req.params;
-    const { userId, imageBase64 } = req.body;
+  const { roomId } = req.params;
+  const { userId, imageBase64 } = req.body;
 
-    if (!userId || !imageBase64) {
-      return res.status(400).json({ error: "Missing userId or imageBase64" });
-    }
-
-    const photoUrl = await photoService.savePhoto(roomId, userId, imageBase64);
-    res.status(201).json({ photoUrl });
-  } catch (error) {
-    res.status(500).json({ error: "Error uploading photo" });
+  if (!userId || !imageBase64) {
+    return res.status(400).json({ error: 'Faltan datos' });
   }
+
+  const userSnap = await db.ref(`rooms/${roomId}/players/${userId}`).get();
+  const userData = userSnap.exists() ? userSnap.val() : { userId };
+
+  const buffer = Buffer.from(imageBase64, 'base64');
+  const photoUrl = await savePhoto(buffer, roomId, userId);
+
+  await db.ref(`rooms/${roomId}/photos/${userId}`).set({
+    userId,
+    username: userData.username || '',
+    userPhoto: userData.userPhoto || '',
+    photoUrl
+  });
+
+  res.json({ photoUrl });
 };
 
 const getPhotos = async (req, res) => {
-  try {
-    const { roomId } = req.params;
-    const photos = await photoService.getPhotos(roomId);
-    res.json(photos);
-  } catch (error) {
-    res.status(500).json({ error: "Error getting photos" });
-  }
+  const { roomId } = req.params;
+  const snap = await db.ref(`rooms/${roomId}/photos`).get();
+  res.json(snap.exists() ? Object.values(snap.val()) : []);
 };
 
 module.exports = { uploadPhoto, getPhotos };

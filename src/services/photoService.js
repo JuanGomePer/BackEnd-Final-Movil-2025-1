@@ -8,4 +8,4 @@ const savePhoto = async (fileBuffer, roomId, userId) => {
   return file.publicUrl();
 };
 
-module.exports = { savePhoto}; 
+module.exports = { savePhoto };
