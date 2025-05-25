@@ -1,32 +1,54 @@
-const roomService = require("../services/roomService");
+const {
+  createRoom,
+  getRoomById,
+  getRoomByCode,
+  getAllRooms
+} = require('../services/roomService');
 
-const createRoom = async (req, res) => {
+const createRoomCtrl = async (req, res) => {
   try {
-    const roomId = await roomService.createRoom(req); 
-    res.status(201).json({ roomId }); 
+    const { name, totalRounds, timeLimit, category } = req.body;
+    if (!name || !totalRounds || !timeLimit || !category) {
+      return res.status(400).json({ error: 'Faltan parámetros en el body' });
+    }
+    const roomId = await createRoom({ name, totalRounds, timeLimit, category });
+    res.status(201).json({ roomId });
   } catch (error) {
-    res.status(500).json({ error: "Error creating room" });
+    console.error('CreateRoom error:', error);
+    res.status(500).json({ error: 'Error creando sala' });
   }
 };
 
-const getRoomById = async (req, res) => {
+const getRoomByIdCtrl = async (req, res) => {
   try {
-    const roomId = req.params.roomId;
-    const room = await roomService.getRoomById(roomId);
-    if (!room) return res.status(404).json({ error: "Room not found" });
+    const param = req.params.roomId;
+    let room;
+    // si el parámetro tiene 6 caracteres, lo tratamos como código
+    if (param.length === 6) {
+      room = await getRoomByCode(param);
+    } else {
+      room = await getRoomById(param);
+    }
+    if (!room) return res.status(404).json({ error: 'Sala no encontrada' });
     res.json(room);
   } catch (error) {
-    res.status(500).json({ error: "Error getting room" });
+    console.error('GetRoomById error:', error);
+    res.status(500).json({ error: 'Error obteniendo sala' });
   }
 };
 
-const getAllRooms = async (req, res) => {
+const getAllRoomsCtrl = async (req, res) => {
   try {
-    const rooms = await roomService.getAllRooms();
+    const rooms = await getAllRooms();
     res.json(rooms);
   } catch (error) {
-    res.status(500).json({ error: "Error getting rooms" });
+    console.error('GetAllRooms error:', error);
+    res.status(500).json({ error: 'Error obteniendo salas' });
   }
 };
 
-module.exports = { createRoom, getRoomById, getAllRooms };
+module.exports = {
+  createRoom: createRoomCtrl,
+  getRoomById: getRoomByIdCtrl,
+  getAllRooms: getAllRoomsCtrl
+};
