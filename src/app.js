@@ -6,7 +6,11 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:8081','exp://127.0.0.1:19000'], 
+  methods: ['GET','POST','OPTIONS'],
+  credentials: true
+}));
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
